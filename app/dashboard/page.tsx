@@ -10,8 +10,20 @@ import {
   Navigation,
   Podcast,
   LocateFixed,
+  MapPin,
 } from "lucide-react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+// Dynamically import the map component to avoid SSR issues
+const IncidentMap = dynamic(() => import("@/components/incident-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-100">
+      <span className="text-slate-500">Loading map...</span>
+    </div>
+  ),
+});
 
 export default function DashboardPage() {
   return (
@@ -51,40 +63,7 @@ export default function DashboardPage() {
             </p>
           </CardHeader>
           <CardContent className="flex-1 relative p-0 overflow-hidden bg-[#f0f0f0] min-h-[350px]">
-            {/* Map Placeholder - grayscale map style */}
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e8e8e8' width='400' height='300'/%3E%3Cpath d='M0 50h400M0 100h400M0 150h400M0 200h400M0 250h400' stroke='%23ddd' stroke-width='1'/%3E%3Cpath d='M50 0v300M100 0v300M150 0v300M200 0v300M250 0v300M300 0v300M350 0v300' stroke='%23ddd' stroke-width='1'/%3E%3C/svg%3E")`,
-                backgroundSize: "cover",
-              }}
-            />
-
-            {/* Pins */}
-            <div className="absolute top-[40%] left-[35%]">
-              <span className="w-2.5 h-2.5 block rounded-full bg-blue-500"></span>
-            </div>
-            <div className="absolute top-[50%] left-[55%]">
-              <span className="w-3 h-3 block rounded-full bg-red-500"></span>
-            </div>
-            <div className="absolute top-[55%] left-[45%]">
-              <span className="w-2.5 h-2.5 block rounded-full bg-blue-500"></span>
-            </div>
-            <div className="absolute top-[60%] left-[40%]">
-              <span className="w-2.5 h-2.5 block rounded-full bg-blue-500"></span>
-            </div>
-
-            {/* Legend */}
-            <div className="absolute bottom-4 right-4 bg-white p-3 rounded shadow text-xs space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="text-slate-700">Active Incident</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span className="text-slate-700">Reported Incidents</span>
-              </div>
-            </div>
+            <IncidentMap />
           </CardContent>
         </Card>
 
@@ -98,13 +77,13 @@ export default function DashboardPage() {
               <Image src="/drone1.png" alt="Drone" width={80} height={80} />
             </div>
           </CardHeader>
-          <CardContent className="pt-4 space-y-5 flex-1 flex flex-col">
+          <CardContent className="pt-4 flex-1 flex flex-col">
             <div className="">
               <StatusRow
                 label="Battery"
                 value="87%"
                 icon={Battery}
-                iconColor="#1f72ea"
+                iconColor="#1caf29"
                 hasShadow
               />
             </div>
@@ -112,13 +91,13 @@ export default function DashboardPage() {
               label="Connection"
               value="Strong"
               icon={Wifi}
-              iconColor="#1f72ea"
+              iconColor="#3deac6"
               hasShadow
             />
             <StatusRow
               label="GPS Location"
               value="26.3927°N, 50.0132°E"
-              icon={LocateFixed}
+              icon={MapPin}
               iconColor="#1f72ea"
               hasShadow
             />
@@ -179,19 +158,21 @@ function StatCard({ title, value, icon: Icon, trend, iconColor }: any) {
 function StatusRow({ label, value, icon: Icon, iconColor, hasShadow }: any) {
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg ${
-        hasShadow ? "shadow-md border border-slate-100 bg-white" : ""
+      className={`flex items-center justify-between p-4 rounded-xl mb-3 overflow-hidden ${
+        hasShadow ? "bg-slate-50" : ""
       }`}
     >
-      <div className="flex items-center gap-3 text-slate-600">
+      <div className="flex items-center gap-3 text-slate-600 shrink-0">
         <Icon
-          size={16}
+          size={20}
           style={{ color: iconColor || undefined }}
           className={iconColor ? "" : "text-slate-400"}
         />
-        <span className="text-sm">{label}</span>
+        <span className="text-sm whitespace-nowrap">{label}</span>
       </div>
-      <span className="text-sm text-slate-800 font-medium">{value}</span>
+      <span className="text-sm text-slate-800 font-medium truncate ml-2">
+        {value}
+      </span>
     </div>
   );
 }
