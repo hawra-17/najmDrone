@@ -81,7 +81,7 @@ export default function DashboardLayout({
               className="object-contain"
             />
             <div>
-              <h1 className="text-lg font-bold text-slate-800">
+              <h1 className="text-lg font-bold text-[#0B1E2D]">
                 Najm Drone Incident Dashboard
               </h1>
               <p className="text-xs text-slate-500">Welcome back, Admin</p>

@@ -11,6 +11,7 @@ import {
   Podcast,
   LocateFixed,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function DashboardPage() {
   return (
@@ -21,9 +22,21 @@ export default function DashboardPage() {
           title="Total Incidents (Eastern Province)"
           value="140"
           icon={AlertCircle}
+          iconColor="#1f72ea"
         />
-        <StatCard title="Active Incidents" value="8" icon={Activity} trend />
-        <StatCard title="Last Update" value="2 mins ago" icon={Clock} />
+        <StatCard
+          title="Active Incidents"
+          value="8"
+          icon={Activity}
+          trend
+          iconColor="#1f72ea"
+        />
+        <StatCard
+          title="Last Update"
+          value="2 mins ago"
+          icon={Clock}
+          iconColor="#1f72ea"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -82,18 +95,40 @@ export default function DashboardPage() {
               Drone Status
             </CardTitle>
             <div className="text-slate-400">
-              <LocateFixed size={20} />
+              <Image src="/drone1.png" alt="Drone" width={80} height={80} />
             </div>
           </CardHeader>
           <CardContent className="pt-4 space-y-5 flex-1 flex flex-col">
-            <StatusRow label="Battery" value="87%" icon={Battery} />
-            <StatusRow label="Connection" value="Strong" icon={Wifi} />
+            <div className="">
+              <StatusRow
+                label="Battery"
+                value="87%"
+                icon={Battery}
+                iconColor="#1f72ea"
+                hasShadow
+              />
+            </div>
+            <StatusRow
+              label="Connection"
+              value="Strong"
+              icon={Wifi}
+              iconColor="#1f72ea"
+              hasShadow
+            />
             <StatusRow
               label="GPS Location"
               value="26.3927°N, 50.0132°E"
               icon={LocateFixed}
+              iconColor="#1f72ea"
+              hasShadow
             />
-            <StatusRow label="Current Mode" value="Standby" icon={Activity} />
+            <StatusRow
+              label="Current Mode"
+              value="Standby"
+              icon={Activity}
+              iconColor="#1f72ea"
+              hasShadow
+            />
 
             <div className="mt-auto pt-4">
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
@@ -122,7 +157,7 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, trend }: any) {
+function StatCard({ title, value, icon: Icon, trend, iconColor }: any) {
   return (
     <Card className="shadow-sm border-slate-200 bg-white">
       <CardContent className="p-5 flex items-start justify-between">
@@ -130,7 +165,10 @@ function StatCard({ title, value, icon: Icon, trend }: any) {
           <p className="text-xs text-slate-500 font-medium">{title}</p>
           <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
         </div>
-        <div className="text-slate-400">
+        <div
+          style={{ color: iconColor || undefined }}
+          className={iconColor ? "" : "text-slate-400"}
+        >
           {trend ? <Activity size={22} /> : <Icon size={22} />}
         </div>
       </CardContent>
@@ -138,11 +176,19 @@ function StatCard({ title, value, icon: Icon, trend }: any) {
   );
 }
 
-function StatusRow({ label, value, icon: Icon }: any) {
+function StatusRow({ label, value, icon: Icon, iconColor, hasShadow }: any) {
   return (
-    <div className="flex items-center justify-between">
+    <div
+      className={`flex items-center justify-between p-3 rounded-lg ${
+        hasShadow ? "shadow-md border border-slate-100 bg-white" : ""
+      }`}
+    >
       <div className="flex items-center gap-3 text-slate-600">
-        <Icon size={16} className="text-slate-400" />
+        <Icon
+          size={16}
+          style={{ color: iconColor || undefined }}
+          className={iconColor ? "" : "text-slate-400"}
+        />
         <span className="text-sm">{label}</span>
       </div>
       <span className="text-sm text-slate-800 font-medium">{value}</span>

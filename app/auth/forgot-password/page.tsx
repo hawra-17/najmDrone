@@ -28,7 +28,8 @@ export default function ForgotPasswordPage() {
               Forgot Password
             </h1>
             <p className="text-xs text-slate-500 max-w-[260px] mx-auto leading-relaxed">
-              Enter your email address and we'll send you a reset password link
+              Enter your email address and we&apos;ll send you a reset password
+              link
             </p>
           </div>
 
@@ -53,7 +54,7 @@ export default function ForgotPasswordPage() {
 
             <Link href="/auth/reset-password" className="w-full block">
               {" "}
-              {/* Link to next step for demo */}
+              {/* maybe then we should to do something here */}
               <Button className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold">
                 Send Reset Link
               </Button>

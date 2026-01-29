@@ -14,6 +14,14 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  
+/*
+i think we should delete the sign up page and let the it admistrator create accounts for users only
+and this have a high security reason
+*/
+
+  
+  
   return (
     <AuthLayout>
       <Card className="w-full shadow-2xl border-0 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">

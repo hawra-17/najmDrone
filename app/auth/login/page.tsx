@@ -71,6 +71,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {/* link to forgot password */}
               <div className="flex justify-end pt-1">
                 <Link
                   href="/auth/forgot-password"
@@ -87,7 +88,9 @@ export default function LoginPage() {
               </Button>
             </Link>
 
-            <div className="flex items-center gap-2 my-4">
+            {/* continue with Nafath */}
+
+            {/* <div className="flex items-center gap-2 my-4">
               <div className="h-px flex-1 bg-slate-200"></div>
               <span className="text-xs text-slate-400">Or continue with</span>
               <div className="h-px flex-1 bg-slate-200"></div>
@@ -101,11 +104,12 @@ export default function LoginPage() {
               <span className="bg-white/20 px-1 rounded text-xs font-bold">
                 نفاذ
               </span>
-            </Button>
+            </Button> */}
 
+           {/* link to sign up page  */}
             <div className="text-center mt-6">
               <span className="text-xs text-slate-400">
-                I don't have an account{" "}
+                I don&apos;t have an account{" "}
               </span>
               <Link
                 href="/auth/signup"
