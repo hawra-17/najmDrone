@@ -207,82 +207,78 @@ export default function IncidentDetailsPage() {
 
       {/* Incident List Table */}
       <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Incident ID</th>
-                <th className="px-6 py-4 whitespace-nowrap">Date & Time</th>
-                <th className="px-6 py-4 whitespace-nowrap">Location</th>
-                <th className="px-6 py-4">Severity</th>
-                <th className="px-6 py-4">Confidence</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Videos</th>
-                <th className="px-6 py-4">Actions</th>
+        <table className="w-full text-sm text-left table-fixed">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th className="px-3 py-3 w-[12%]">Incident ID</th>
+              <th className="px-3 py-3 w-[14%]">Date & Time</th>
+              <th className="px-3 py-3 w-[20%]">Location</th>
+              <th className="px-3 py-3 w-[10%]">Severity</th>
+              <th className="px-3 py-3 w-[10%]">Confidence</th>
+              <th className="px-3 py-3 w-[9%]">Status</th>
+              <th className="px-3 py-3 w-[10%]">Videos</th>
+              <th className="px-3 py-3 w-[15%]">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {incidents.map((incident) => (
+              <tr
+                key={incident.id}
+                className="hover:bg-slate-50/50 transition-colors"
+              >
+                <td className="px-3 py-3 text-slate-600 text-xs">
+                  {incident.id}
+                </td>
+                <td className="px-3 py-3">
+                  <div className="text-slate-800 font-medium text-xs">
+                    {incident.date}
+                  </div>
+                  <div className="text-slate-400 text-xs">{incident.time}</div>
+                </td>
+                <td className="px-3 py-3 text-slate-600 text-xs">
+                  {incident.location}
+                </td>
+                <td className="px-3 py-3">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${incident.severity === "High" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
+                  >
+                    {incident.severity}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-slate-600 text-xs">
+                  {incident.confidence}
+                </td>
+                <td className="px-3 py-3">
+                  <span
+                    className={`text-xs ${incident.status === "Active" ? "text-slate-800 font-medium" : "text-slate-500"}`}
+                  >
+                    {incident.status}
+                  </span>
+                </td>
+                <td className="px-3 py-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs text-teal-500 border-teal-200 hover:bg-teal-50 hover:text-teal-600 px-2"
+                  >
+                    <Video className="w-3 h-3 mr-1" />
+                    View
+                  </Button>
+                </td>
+                <td className="px-3 py-3">
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs bg-[#2563eb] hover:bg-[#1d4ed8] px-2"
+                    onClick={() => setSelectedIncident(incident)}
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    View Report
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {incidents.map((incident) => (
-                <tr
-                  key={incident.id}
-                  className="hover:bg-slate-50/50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
-                    {incident.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-slate-800 font-medium">
-                      {incident.date}
-                    </span>
-                    <span className="text-slate-400 text-xs ml-2">
-                      {incident.time}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
-                    {incident.location}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${incident.severity === "High" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
-                    >
-                      {incident.severity}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {incident.confidence}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`text-slate-600 ${incident.status === "Active" ? "text-slate-800 font-medium" : "text-slate-500"}`}
-                    >
-                      {incident.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-teal-500 border-teal-200 hover:bg-teal-50 hover:text-teal-600"
-                    >
-                      <Video className="w-3.5 h-3.5 mr-1" />
-                      View
-                    </Button>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Button
-                      size="sm"
-                      className="h-8 bg-[#2563eb] hover:bg-[#1d4ed8]"
-                      onClick={() => setSelectedIncident(incident)}
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1" />
-                      View Report
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </Card>
 
       {/* Incident Report Modal */}
@@ -431,7 +427,7 @@ function IncidentReportModal({
               <div className="aspect-video bg-slate-200 rounded-lg overflow-hidden relative group">
                 <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-100">
                   <Image
-                    src="/drone1.png"
+                    src="/ SceneView1.png"
                     alt="Scene View 1"
                     width={200}
                     height={150}
@@ -445,7 +441,7 @@ function IncidentReportModal({
               <div className="aspect-video bg-slate-200 rounded-lg overflow-hidden relative group">
                 <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-100">
                   <Image
-                    src="/drone1.png"
+                    src="/ SceneView2.png"
                     alt="Scene View 2"
                     width={200}
                     height={150}
@@ -466,13 +462,26 @@ function IncidentReportModal({
             </label>
             <div className="grid grid-cols-2 gap-4">
               <div className="aspect-[3/1] bg-slate-800 rounded-lg overflow-hidden relative group flex items-center justify-center">
-                <span className="text-white/50 text-xs">Car A Plate Img</span>
+                <Image
+                  src="/Plate.png"
+                  alt="Scene View 2"
+                  width={200}
+                  height={150}
+                  className="object-cover w-full h-full opacity-80"
+                />
+
                 <div className="absolute bottom-0 w-full bg-white/90 py-1 text-center text-xs font-medium text-slate-700">
                   Car A: ABC-1234
                 </div>
               </div>
               <div className="aspect-[3/1] bg-slate-800 rounded-lg overflow-hidden relative group flex items-center justify-center">
-                <span className="text-white/50 text-xs">Car B Plate Img</span>
+                <Image
+                  src="/Plate.png"
+                  alt="Scene View 2"
+                  width={200}
+                  height={150}
+                  className="object-cover w-full h-full opacity-80"
+                />
                 <div className="absolute bottom-0 w-full bg-white/90 py-1 text-center text-xs font-medium text-slate-700">
                   Car B: XYZ-5678
                 </div>
