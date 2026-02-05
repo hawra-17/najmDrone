@@ -91,7 +91,7 @@ export default function DashboardPage() {
               label="Connection"
               value="Strong"
               icon={Wifi}
-              iconColor="#3deac6"
+              iconColor="#1caf29"
               hasShadow
             />
             <StatusRow
@@ -138,17 +138,14 @@ export default function DashboardPage() {
 
 function StatCard({ title, value, icon: Icon, trend, iconColor }: any) {
   return (
-    <Card className="shadow-sm border-slate-200 bg-white">
-      <CardContent className="p-5 flex items-start justify-between">
-        <div>
-          <p className="text-xs text-slate-500 font-medium">{title}</p>
-          <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
-        </div>
-        <div
-          style={{ color: iconColor || undefined }}
-          className={iconColor ? "" : "text-slate-400"}
-        >
-          {trend ? <Activity size={22} /> : <Icon size={22} />}
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-[#1e3a5f] mt-2">{value}</p>
+          </div>
+          <Icon className="h-6 w-6 text-[#2563eb]" />
         </div>
       </CardContent>
     </Card>
