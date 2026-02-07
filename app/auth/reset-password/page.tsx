@@ -6,13 +6,99 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState<"otp" | "password">("otp");
+  const router = useRouter();
+
+  useEffect(() => {
+    // Get email from sessionStorage
+    const storedEmail = sessionStorage.getItem("resetEmail");
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+  }, []);
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "recovery",
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // OTP verified, move to password step
+      setStep("password");
+      setIsLoading(false);
+    } catch {
+      setError("An unexpected error occurred");
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+      sessionStorage.removeItem("resetEmail");
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
+    } catch {
+      setError("An unexpected error occurred");
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthLayout>
@@ -29,70 +115,178 @@ export default function ResetPasswordPage() {
 
           <div className="text-center space-y-2 mb-8">
             <h1 className="text-xl font-bold text-slate-800">
-              Forgot Password
+              {step === "otp" ? "Enter OTP Code" : "Create New Password"}
             </h1>
-            <p className="text-xs text-slate-500">Create your new password</p>
+            <p className="text-xs text-slate-500">
+              {step === "otp"
+                ? "Enter the 6-digit code sent to your email"
+                : "Create your new password"}
+            </p>
           </div>
 
-          <form className="w-full space-y-5">
-            <div className="space-y-1">
-              <Label
-                className="text-xs text-slate-500 font-medium"
-                htmlFor="newPassword"
-              >
-                New Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter new password"
-                  className="h-10 bg-slate-50 border-slate-200 text-sm pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+          {success ? (
+            <div className="w-full text-center space-y-4">
+              <div className="bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg p-4">
+                Password reset successfully!
               </div>
+              <p className="text-xs text-slate-500">Redirecting to login...</p>
             </div>
+          ) : step === "otp" ? (
+            <form className="w-full space-y-5" onSubmit={handleVerifyOTP}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                  {error}
+                </div>
+              )}
 
-            <div className="space-y-1">
-              <Label
-                className="text-xs text-slate-500 font-medium"
-                htmlFor="confirmPassword"
-              >
-                Confirm Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm new password"
-                  className="h-10 bg-slate-50 border-slate-200 text-sm pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+              {!email && (
+                <div className="space-y-1">
+                  <Label
+                    className="text-xs text-slate-500 font-medium"
+                    htmlFor="email"
+                  >
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="h-10 bg-slate-50 border-slate-200 text-sm"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label
+                  className="text-xs text-slate-500 font-medium"
+                  htmlFor="otp"
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff size={16} />
-                  ) : (
-                    <Eye size={16} />
-                  )}
-                </button>
+                  OTP Code
+                </Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  placeholder="Enter 8-digit code"
+                  className="h-12 bg-slate-50 border-slate-200 text-center text-lg tracking-widest font-mono"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))
+                  }
+                  maxLength={8}
+                  required
+                />
               </div>
-            </div>
 
-            <Link href="/auth/login" className="w-full block">
-              <Button className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold mt-4">
-                Reset Password
+              <Button
+                type="submit"
+                className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold mt-4"
+                disabled={isLoading || otp.length !== 8}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Verify OTP"
+                )}
               </Button>
-            </Link>
-          </form>
+
+              <div className="flex justify-center mt-6">
+                <Link
+                  href="/auth/forgot-password"
+                  className="flex items-center text-slate-500 hover:text-slate-800 text-sm gap-2 font-medium transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  <span>Resend OTP</span>
+                </Link>
+              </div>
+            </form>
+          ) : (
+            <form className="w-full space-y-5" onSubmit={handleResetPassword}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label
+                  className="text-xs text-slate-500 font-medium"
+                  htmlFor="newPassword"
+                >
+                  New Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    className="h-10 bg-slate-50 border-slate-200 text-sm pr-10"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label
+                  className="text-xs text-slate-500 font-medium"
+                  htmlFor="confirmPassword"
+                >
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm new password"
+                    className="h-10 bg-slate-50 border-slate-200 text-sm pr-10"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={16} />
+                    ) : (
+                      <Eye size={16} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold mt-4"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  "Reset Password"
+                )}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </AuthLayout>
