@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Video, X, Download, AlertCircle } from "lucide-react";
+import { Eye, Video, X, Download, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import {
   PieChart,
@@ -307,6 +307,69 @@ function IncidentReportModal({
   };
   onClose: () => void;
 }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+
+    setIsExporting(true);
+
+    try {
+      // Use html2canvas-pro which supports modern CSS color functions like lab()
+      const html2canvas = (await import("html2canvas-pro")).default;
+      const jsPDF = (await import("jspdf")).default;
+
+      const element = reportRef.current;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        allowTaint: true,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 0;
+
+      // Handle multi-page if content is too long
+      const pageHeight = pdfHeight;
+      const scaledHeight = (imgHeight * pdfWidth) / imgWidth;
+      let heightLeft = scaledHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, scaledHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - scaledHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, scaledHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Incident-Report-${incident.id}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 flex flex-col">
@@ -324,7 +387,7 @@ function IncidentReportModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div ref={reportRef} className="p-6 space-y-6 bg-white">
           {/* Alert Banner */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
             <AlertCircle className="text-blue-600 w-5 h-5 shrink-0 mt-0.5" />
@@ -507,9 +570,22 @@ function IncidentReportModal({
 
         {/* Footer */}
         <div className="bg-slate-50 border-t border-slate-200 p-4 flex gap-3 justify-between sticky bottom-0 shrink-0">
-          <Button className="flex-1 bg-teal-400 hover:bg-teal-500 text-white">
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
+          <Button
+            className="flex-1 bg-teal-400 hover:bg-teal-500 text-white"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export Report
+              </>
+            )}
           </Button>
           <Button
             variant="secondary"
