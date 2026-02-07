@@ -33,11 +33,11 @@ export default function Home() {
                 Sign In
               </Button>
             </Link>
-            <Link href="/auth/signup" className="w-full block">
+            {/* <Link href="/auth/signup" className="w-full block">
               <Button className="w-full h-12 text-base font-semibold bg-[#14b8a6] hover:bg-[#0d9488] text-white rounded-lg shadow-sm transition-all duration-200">
                 Sign Up
               </Button>
-            </Link>
+            </Link> */}
           </div>
         </CardContent>
       </Card>

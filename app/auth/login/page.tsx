@@ -7,11 +7,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("An unexpected error occurred");
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthLayout>
@@ -33,7 +66,13 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="w-full space-y-5">
+          <form className="w-full space-y-5" onSubmit={handleLogin}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                {error}
+              </div>
+            )}
+
             <div className="space-y-1">
               <Label
                 className="text-xs text-slate-500 font-medium"
@@ -46,6 +85,9 @@ export default function LoginPage() {
                 type="email"
                 placeholder="admin@najm.sa"
                 className="h-10 bg-slate-50 border-slate-200 text-sm"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -62,6 +104,9 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="........"
                   className="h-10 bg-slate-50 border-slate-200 text-sm pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button
                   type="button"
@@ -82,11 +127,20 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Link href="/dashboard" className="w-full block">
-              <Button className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold mt-2">
-                Sign In
-              </Button>
-            </Link>
+            <Button
+              type="submit"
+              className="w-full h-10 bg-[#0070CD] hover:bg-[#005bb5] text-white font-semibold mt-2"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
 
             {/* continue with Nafath */}
 
@@ -106,8 +160,8 @@ export default function LoginPage() {
               </span>
             </Button> */}
 
-           {/* link to sign up page  */}
-            <div className="text-center mt-6">
+            {/* link to sign up page  */}
+            {/* <div className="text-center mt-6">
               <span className="text-xs text-slate-400">
                 I don&apos;t have an account{" "}
               </span>
@@ -117,7 +171,7 @@ export default function LoginPage() {
               >
                 Sign up
               </Link>
-            </div>
+            </div> */}
           </form>
         </CardContent>
       </Card>

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   LayoutDashboard,
@@ -12,11 +13,13 @@ import {
   Lock,
   Bell,
   Save,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({
   children,
@@ -24,16 +27,107 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [displayName, setDisplayName] = useState("Admin User");
-  const [email, setEmail] = useState("admin@najm.sa");
+  const [displayName, setDisplayName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [dailySummary, setDailySummary] = useState(true);
   const [resolutionUpdates, setResolutionUpdates] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const handleSaveSettings = () => {
-    // Handle save logic here
-    setIsSettingsOpen(false);
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      setUserEmail(user.email || "");
+
+      // Fetch profile data
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setDisplayName(profile.display_name || "");
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("User not found");
+        setIsSaving(false);
+        return;
+      }
+
+      // Update display name in profiles table
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: user.id,
+        display_name: displayName,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (profileError) {
+        setError("Failed to update display name");
+        setIsSaving(false);
+        return;
+      }
+
+      // Update password if provided
+      if (newPassword) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (passwordError) {
+          setError(passwordError.message);
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      setSuccess("Settings saved successfully!");
+      setOldPassword("");
+      setNewPassword("");
+
+      setTimeout(() => {
+        setIsSettingsOpen(false);
+        setSuccess("");
+      }, 1500);
+    } catch {
+      setError("An unexpected error occurred");
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/login");
   };
 
   return (
@@ -59,14 +153,22 @@ export default function DashboardLayout({
         <nav className="flex-1 px-4 py-6 space-y-2">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 bg-[#0070CD] rounded-lg text-sm font-medium transition-colors shadow-sm"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              pathname === "/dashboard"
+                ? "bg-[#0070CD] text-white shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
           >
             <LayoutDashboard size={18} />
             <span>Overview</span>
           </Link>
           <Link
             href="/dashboard/incident-details"
-            className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              pathname === "/dashboard/incident-details"
+                ? "bg-[#0070CD] text-white shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
           >
             <FileText size={18} />
             <span>Incident Details</span>
@@ -82,19 +184,21 @@ export default function DashboardLayout({
               <User size={20} />
             </div>
             <div className="flex flex-col overflow-hidden text-left">
-              <span className="text-sm font-semibold truncate">Admin User</span>
+              <span className="text-sm font-semibold truncate">
+                {displayName || "Loading..."}
+              </span>
               <span className="text-xs text-slate-400 truncate">
-                admin@najm.sa
+                {userEmail || "..."}
               </span>
             </div>
           </button>
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-slate-400 hover:text-white text-xs px-2 transition-colors"
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-slate-400 hover:text-white text-xs px-2 transition-colors w-full"
           >
             <LogOut size={14} />
             <span>Logout</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -115,7 +219,9 @@ export default function DashboardLayout({
               <h1 className="text-2xl font-bold text-[#1e3a5f]">
                 Najm Drone Incident Dashboard
               </h1>
-              <p className="text-muted-foreground">Welcome back, Admin</p>
+              <p className="text-muted-foreground">
+                Welcome back, {displayName || "User"}
+              </p>
             </div>
           </div>
         </header>
@@ -149,6 +255,17 @@ export default function DashboardLayout({
 
             {/* Modal Content */}
             <div className="p-6 space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg p-3">
+                  {success}
+                </div>
+              )}
+
               {/* Profile Settings */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-700">
@@ -167,18 +284,6 @@ export default function DashboardLayout({
                       id="displayName"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="mt-1 bg-slate-100 border-slate-200"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="text-slate-600 text-sm">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       className="mt-1 bg-slate-100 border-slate-200"
                     />
                   </div>
@@ -275,14 +380,25 @@ export default function DashboardLayout({
               <Button
                 onClick={handleSaveSettings}
                 className="flex-1 bg-[#0070CD] hover:bg-[#005fa3]"
+                disabled={isSaving}
               >
-                <Save size={16} className="mr-2" />
-                Save Changes
+                {isSaving ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-2" />
+                    Save Changes
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setIsSettingsOpen(false)}
                 className="flex-1"
+                disabled={isSaving}
               >
                 Cancel
               </Button>
