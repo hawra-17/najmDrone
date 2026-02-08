@@ -110,9 +110,11 @@ export default function DashboardPage() {
             />
 
             <div className="mt-auto pt-4">
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
-                <span className="text-slate-600 text-sm">Status</span>
-                <span className="bg-[#10b981] text-white text-xs px-4 py-1 rounded font-semibold">
+              <div className="bg-white border-2 border-blue-400 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <span className="text-slate-700 text-sm font-medium">
+                  Status
+                </span>
+                <span className="bg-[#22c55e] text-white text-sm px-5 py-1.5 rounded-full font-semibold">
                   Online
                 </span>
               </div>
