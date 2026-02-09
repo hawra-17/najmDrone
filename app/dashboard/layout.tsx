@@ -14,12 +14,21 @@ import {
   Bell,
   Save,
   Loader2,
+  Check,
+  Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
+
+// Password validation helpers
+const hasMinLength = (password: string) => password.length >= 6;
+const hasNumber = (password: string) => /\d/.test(password);
+const hasCapital = (password: string) => /[A-Z]/.test(password);
+const isPasswordValid = (password: string) =>
+  hasMinLength(password) && hasNumber(password) && hasCapital(password);
 
 export default function DashboardLayout({
   children,
@@ -99,6 +108,12 @@ export default function DashboardLayout({
 
       // Update password if provided
       if (newPassword) {
+        if (!isPasswordValid(newPassword)) {
+          setError("Password does not meet requirements");
+          setIsSaving(false);
+          return;
+        }
+
         const { error: passwordError } = await supabase.auth.updateUser({
           password: newPassword,
         });
@@ -326,6 +341,47 @@ export default function DashboardLayout({
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="mt-1 bg-slate-100 border-slate-200"
                     />
+                    {/* Password Requirements */}
+                    {newPassword.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center gap-2">
+                          {hasMinLength(newPassword) ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Circle size={14} className="text-slate-300" />
+                          )}
+                          <span
+                            className={`text-xs ${hasMinLength(newPassword) ? "text-green-600" : "text-slate-500"}`}
+                          >
+                            At least 6 characters
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasNumber(newPassword) ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Circle size={14} className="text-slate-300" />
+                          )}
+                          <span
+                            className={`text-xs ${hasNumber(newPassword) ? "text-green-600" : "text-slate-500"}`}
+                          >
+                            At least one number
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasCapital(newPassword) ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Circle size={14} className="text-slate-300" />
+                          )}
+                          <span
+                            className={`text-xs ${hasCapital(newPassword) ? "text-green-600" : "text-slate-500"}`}
+                          >
+                            At least one capital letter
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
