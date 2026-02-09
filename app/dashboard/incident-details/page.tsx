@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Video, X, Download, AlertCircle, Loader2 } from "lucide-react";
@@ -17,13 +17,22 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { supabase } from "@/lib/supabase";
 
-// Chart Data
-const severityData = [
-  { name: "High", value: 23, color: "#ef4444" },
-  { name: "Moderate", value: 37, color: "#fb923c" },
-  { name: "Low", value: 41, color: "#2dd4bf" },
-];
+// Types for Supabase data
+interface Incident {
+  id: string;
+  incident_id: string;
+  date: string;
+  time: string;
+  location: string;
+  severity: "High" | "Moderate" | "Low";
+  confidence: number;
+  status: "Active" | "Resolved" | "Pending";
+  video_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const regionalData = [
   { name: "Dammam", High: 20, Moderate: 15, Low: 12 },
@@ -31,83 +40,85 @@ const regionalData = [
   { name: "AlDhahran", High: 8, Moderate: 12, Low: 18 },
 ];
 
-// Mock Data
-const incidents = [
-  {
-    id: "INC-2024-001",
-    date: "Nov 29, 2025",
-    time: "14:32",
-    location: "Dammam, King Fahd Rd",
-    severity: "High",
-    confidence: "94.5%",
-    status: "Active",
-  },
-  {
-    id: "INC-2024-002",
-    date: "Nov 29, 2025",
-    time: "13:15",
-    location: "AlKhobar, Dhahran St",
-    severity: "Moderate",
-    confidence: "87.2%",
-    status: "Active",
-  },
-  {
-    id: "INC-2024-003",
-    date: "Nov 29, 2025",
-    time: "12:48",
-    location: "AlDhahran, KFUPM Area",
-    severity: "Low",
-    confidence: "78.9%",
-    status: "Resolved",
-  },
-  {
-    id: "INC-2024-004",
-    date: "Nov 29, 2025",
-    time: "11:22",
-    location: "Dammam, Corniche Rd",
-    severity: "High",
-    confidence: "92.8%",
-    status: "Active",
-  },
-  {
-    id: "INC-2024-005",
-    date: "Nov 29, 2025",
-    time: "10:05",
-    location: "AlKhobar, King Abdullah St",
-    severity: "Moderate",
-    confidence: "85.6%",
-    status: "Resolved",
-  },
-  {
-    id: "INC-2024-006",
-    date: "Nov 28, 2025",
-    time: "16:45",
-    location: "Dammam, Prince Mohammed Rd",
-    severity: "Low",
-    confidence: "76.3%",
-    status: "Resolved",
-  },
-  {
-    id: "INC-2024-007",
-    date: "Nov 28, 2025",
-    time: "15:20",
-    location: "AlDhahran, University Blvd",
-    severity: "High",
-    confidence: "96.1%",
-    status: "Resolved",
-  },
-];
+// Helper function to format date
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Helper function to format time
+function formatTime(timeStr: string): string {
+  return timeStr.slice(0, 5); // Returns "HH:MM" from "HH:MM:SS"
+}
 
 export default function IncidentDetailsPage() {
-  const [selectedIncident, setSelectedIncident] = useState<{
-    id: string;
-    date: string;
-    time: string;
-    location: string;
-    severity: string;
-    confidence: string;
-    status: string;
-  } | null>(null);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(
+    null,
+  );
+
+  // Calculate severity data from fetched incidents
+  const severityData = [
+    {
+      name: "High",
+      value:
+        incidents.length > 0
+          ? incidents.filter((i) => i.severity === "High").length
+          : 0,
+      color: "#ef4444",
+    },
+    {
+      name: "Moderate",
+      value:
+        incidents.length > 0
+          ? incidents.filter((i) => i.severity === "Moderate").length
+          : 0,
+      color: "#fb923c",
+    },
+    {
+      name: "Low",
+      value:
+        incidents.length > 0
+          ? incidents.filter((i) => i.severity === "Low").length
+          : 0,
+      color: "#2dd4bf",
+    },
+  ];
+
+  // Fetch incidents from Supabase
+  useEffect(() => {
+    async function fetchIncidents() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("incidents")
+          .select("*")
+          .order("date", { ascending: false })
+          .order("time", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setIncidents(data || []);
+      } catch (err) {
+        console.error("Error fetching incidents:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch incidents",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchIncidents();
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -207,78 +218,104 @@ export default function IncidentDetailsPage() {
 
       {/* Incident List Table */}
       <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
-        <table className="w-full text-sm text-left table-fixed">
-          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-            <tr>
-              <th className="px-3 py-3 w-[12%]">Incident ID</th>
-              <th className="px-3 py-3 w-[14%]">Date & Time</th>
-              <th className="px-3 py-3 w-[20%]">Location</th>
-              <th className="px-3 py-3 w-[10%]">Severity</th>
-              <th className="px-3 py-3 w-[10%]">Confidence</th>
-              <th className="px-3 py-3 w-[9%]">Status</th>
-              <th className="px-3 py-3 w-[10%]">Videos</th>
-              <th className="px-3 py-3 w-[15%]">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {incidents.map((incident) => (
-              <tr
-                key={incident.id}
-                className="hover:bg-slate-50/50 transition-colors"
-              >
-                <td className="px-3 py-3 text-slate-600 text-xs">
-                  {incident.id}
-                </td>
-                <td className="px-3 py-3">
-                  <div className="text-slate-800 font-medium text-xs">
-                    {incident.date}
-                  </div>
-                  <div className="text-slate-400 text-xs">{incident.time}</div>
-                </td>
-                <td className="px-3 py-3 text-slate-600 text-xs">
-                  {incident.location}
-                </td>
-                <td className="px-3 py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${incident.severity === "High" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
-                  >
-                    {incident.severity}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-slate-600 text-xs">
-                  {incident.confidence}
-                </td>
-                <td className="px-3 py-3">
-                  <span
-                    className={`text-xs ${incident.status === "Active" ? "text-slate-800 font-medium" : "text-slate-500"}`}
-                  >
-                    {incident.status}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs text-teal-500 border-teal-200 hover:bg-teal-50 hover:text-teal-600 px-2"
-                  >
-                    <Video className="w-3 h-3 mr-1" />
-                    View
-                  </Button>
-                </td>
-                <td className="px-3 py-3">
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs bg-[#2563eb] hover:bg-[#1d4ed8] px-2"
-                    onClick={() => setSelectedIncident(incident)}
-                  >
-                    <Eye className="w-3 h-3 mr-1" />
-                    View Report
-                  </Button>
-                </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+            <span className="ml-2 text-slate-600">Loading incidents...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-12 text-red-500">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            {error}
+          </div>
+        ) : (
+          <table className="w-full text-sm text-left table-fixed">
+            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+              <tr>
+                <th className="px-3 py-3 w-[12%]">Incident ID</th>
+                <th className="px-3 py-3 w-[14%]">Date & Time</th>
+                <th className="px-3 py-3 w-[20%]">Location</th>
+                <th className="px-3 py-3 w-[10%]">Severity</th>
+                <th className="px-3 py-3 w-[10%]">Confidence</th>
+                <th className="px-3 py-3 w-[9%]">Status</th>
+                <th className="px-3 py-3 w-[10%]">Videos</th>
+                <th className="px-3 py-3 w-[15%]">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {incidents.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-3 py-8 text-center text-slate-500"
+                  >
+                    No incidents found
+                  </td>
+                </tr>
+              ) : (
+                incidents.map((incident) => (
+                  <tr
+                    key={incident.id}
+                    className="hover:bg-slate-50/50 transition-colors"
+                  >
+                    <td className="px-3 py-3 text-slate-600 text-xs">
+                      {incident.incident_id}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="text-slate-800 font-medium text-xs">
+                        {formatDate(incident.date)}
+                      </div>
+                      <div className="text-slate-400 text-xs">
+                        {formatTime(incident.time)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-slate-600 text-xs">
+                      {incident.location}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${incident.severity === "High" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
+                      >
+                        {incident.severity}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-slate-600 text-xs">
+                      {incident.confidence}%
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`text-xs ${incident.status === "Active" ? "text-slate-800 font-medium" : "text-slate-500"}`}
+                      >
+                        {incident.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs text-teal-500 border-teal-200 hover:bg-teal-50 hover:text-teal-600 px-2"
+                        disabled={!incident.video_url}
+                      >
+                        <Video className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-[#2563eb] hover:bg-[#1d4ed8] px-2"
+                        onClick={() => setSelectedIncident(incident)}
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        View Report
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       {/* Incident Report Modal */}
@@ -296,15 +333,7 @@ function IncidentReportModal({
   incident,
   onClose,
 }: {
-  incident: {
-    id: string;
-    date: string;
-    time: string;
-    location: string;
-    severity: string;
-    confidence: string;
-    status: string;
-  };
+  incident: Incident;
   onClose: () => void;
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
@@ -361,7 +390,7 @@ function IncidentReportModal({
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`Incident-Report-${incident.id}.pdf`);
+      pdf.save(`Incident-Report-${incident.incident_id}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
@@ -376,7 +405,7 @@ function IncidentReportModal({
         {/* Header */}
         <div className="bg-[#0f172a] text-white p-4 flex items-center justify-between sticky top-0 z-10 shrink-0">
           <h2 className="text-lg font-bold flex items-center gap-2">
-            Incident Report - {incident.id}
+            Incident Report - {incident.incident_id}
           </h2>
           <button
             onClick={onClose}
@@ -421,7 +450,7 @@ function IncidentReportModal({
                 Confidence Level
               </label>
               <div className="mt-1 p-2 bg-slate-50 rounded border border-slate-100 w-fit text-sm font-medium text-slate-700">
-                {incident.confidence}
+                {incident.confidence}%
               </div>
             </div>
           </div>
@@ -465,8 +494,10 @@ function IncidentReportModal({
             <div className="border border-slate-200 rounded-lg p-3">
               <p className="text-slate-500 text-xs mb-1">Date & Time</p>
               <p className="text-slate-800 text-sm">
-                {incident.date} <br />
-                <span className="text-slate-500">{incident.time}</span>
+                {formatDate(incident.date)} <br />
+                <span className="text-slate-500">
+                  {formatTime(incident.time)}
+                </span>
               </p>
             </div>
             <div className="border border-slate-200 rounded-lg p-3">
