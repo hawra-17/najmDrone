@@ -34,11 +34,16 @@ interface Incident {
   updated_at: string;
 }
 
-const regionalData = [
-  { name: "Dammam", High: 20, Moderate: 15, Low: 12 },
-  { name: "AlKhobar", High: 15, Moderate: 18, Low: 10 },
-  { name: "AlDhahran", High: 8, Moderate: 12, Low: 18 },
-];
+// Helper function to extract region from location
+function extractRegion(location: string): string {
+  const locationLower = location.toLowerCase();
+  if (locationLower.includes("dammam")) return "Dammam";
+  if (locationLower.includes("khobar") || locationLower.includes("alkhobar"))
+    return "AlKhobar";
+  if (locationLower.includes("dhahran") || locationLower.includes("aldhahran"))
+    return "AlDhahran";
+  return "Other";
+}
 
 // Helper function to format date
 function formatDate(dateStr: string): string {
@@ -90,6 +95,23 @@ export default function IncidentDetailsPage() {
       color: "#2dd4bf",
     },
   ];
+
+  // Calculate regional data from fetched incidents
+  const regionalData = (() => {
+    const regions = ["Dammam", "AlKhobar", "AlDhahran"];
+    return regions.map((region) => {
+      const regionIncidents = incidents.filter(
+        (i) => extractRegion(i.location) === region,
+      );
+      return {
+        name: region,
+        High: regionIncidents.filter((i) => i.severity === "High").length,
+        Moderate: regionIncidents.filter((i) => i.severity === "Moderate")
+          .length,
+        Low: regionIncidents.filter((i) => i.severity === "Low").length,
+      };
+    });
+  })();
 
   // Fetch incidents from Supabase
   useEffect(() => {
