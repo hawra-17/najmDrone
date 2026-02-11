@@ -11,7 +11,9 @@ import {
   Podcast,
   LocateFixed,
   MapPin,
+  Smartphone,
 } from "lucide-react";
+import { AlertNotifications } from "@/components/dashboard/alert-notifications";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 
@@ -123,15 +125,22 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Notifications */}
+      {/* Phone Alerts */}
       <Card className="shadow-sm border-slate-200 bg-white">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-bold text-slate-800">
-            Real-time Notifications
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-[#2563eb]" />
+              Phone Alerts
+            </CardTitle>
+            <span className="text-xs text-slate-400">Auto-refreshing</span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Incoming accident alerts from mobile devices
+          </p>
         </CardHeader>
-        <CardContent className="h-20 flex items-center justify-center text-slate-400 text-sm">
-          No active alerts at the moment
+        <CardContent>
+          <AlertNotifications />
         </CardContent>
       </Card>
     </div>

@@ -16,6 +16,7 @@ import {
   Loader2,
   Check,
   Circle,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,6 +188,14 @@ export default function DashboardLayout({
           >
             <FileText size={18} />
             <span>Incident Details</span>
+          </Link>
+          <Link
+            href="/alert"
+            target="_blank"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-white/5"
+          >
+            <Smartphone size={18} />
+            <span>Mobile Alert</span>
           </Link>
         </nav>
 
