@@ -1,5 +1,4 @@
 import { AuthLayout } from "@/components/auth-layout";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,15 +8,6 @@ export default function Home() {
     <AuthLayout>
       <Card className="w-full shadow-2xl border-0 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden py-8">
         <CardContent className="flex flex-col items-center justify-center space-y-8 pt-6">
-          <Image
-            src="/najmLogo.png"
-            alt="Najm Drone"
-            width={180}
-            height={180}
-            className="object-contain"
-            priority
-          />
-
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
               Najm Drone System

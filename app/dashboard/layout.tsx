@@ -160,10 +160,6 @@ export default function DashboardLayout({
             priority
           />
         </div>
-        <div className="text-center py-4 border-b border-slate-700/50">
-          <h2 className="text-lg font-bold text-white">Najm</h2>
-          <p className="text-xs text-cyan-400">Drone System</p>
-        </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
           <Link
@@ -223,13 +219,6 @@ export default function DashboardLayout({
              The image shows a title 'Najm Drone Incident Dashboard' at top left of white area. */}
         <header className="bg-white border-b border-slate-200 py-4 px-8 flex justify-between items-center sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-3">
-            <Image
-              src="/najmLogo.png"
-              alt="Najm Drone"
-              width={100}
-              height={100}
-              className="object-contain"
-            />
             <div>
               <h1 className="text-2xl font-bold text-[#1e3a5f]">
                 Najm Drone Incident Dashboard
