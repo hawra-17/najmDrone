@@ -15,6 +15,8 @@ CREATE TABLE incidents (
   date DATE NOT NULL,
   time TIME NOT NULL,
   location VARCHAR(255) NOT NULL,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
   severity VARCHAR(20) NOT NULL CHECK (severity IN ('High', 'Moderate', 'Low')),
   confidence NUMERIC NOT NULL,
   status VARCHAR(20) NOT NULL CHECK (status IN ('Active', 'Resolved', 'Pending')),
@@ -26,6 +28,7 @@ CREATE TABLE incidents (
 -- Create index for faster queries on incident_id
 CREATE INDEX idx_incidents_incident_id ON incidents(incident_id);
 CREATE INDEX idx_incidents_created_year ON incidents(EXTRACT(YEAR FROM created_at));
+CREATE INDEX idx_incidents_coordinates ON incidents(latitude, longitude);
 ```
 
 ### Option 2: Create a stored function for ID generation (Recommended)

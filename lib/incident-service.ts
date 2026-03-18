@@ -10,6 +10,8 @@ export interface CreateIncidentInput {
   date: string;
   time: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   severity: "High" | "Moderate" | "Low";
   confidence: number;
   status: "Active" | "Resolved" | "Pending";
@@ -41,6 +43,8 @@ export async function createIncident(
         date: input.date,
         time: input.time,
         location: input.location,
+        latitude: input.latitude || null,
+        longitude: input.longitude || null,
         severity: input.severity,
         confidence: input.confidence,
         status: input.status,
@@ -144,7 +148,7 @@ export async function getIncident(
 export async function getIncidentCountForCurrentYear(): Promise<number> {
   try {
     const currentYear = new Date().getFullYear();
-    const { data, error, count } = await supabase
+    const { error, count } = await supabase
       .from("incidents")
       .select("*", { count: "exact" })
       .like("incident_id", `INC-${currentYear}-%`);
