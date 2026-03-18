@@ -1,5 +1,6 @@
 "use client"; // For Lucide icons sometimes needed if importing dynamically, but safe static here.
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertCircle,
@@ -14,6 +15,15 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { supabase } from "@/lib/supabase";
+
+interface IncidentNotification {
+  id: string;
+  incident_id: string;
+  location: string;
+  time: string;
+  created_at: string;
+}
 
 // Dynamically import the map component to avoid SSR issues
 const IncidentMap = dynamic(() => import("@/components/incident-map"), {
@@ -26,6 +36,66 @@ const IncidentMap = dynamic(() => import("@/components/incident-map"), {
 });
 
 export default function DashboardPage() {
+  const [notifications, setNotifications] = useState<IncidentNotification[]>(
+    [],
+  );
+
+  useEffect(() => {
+    const fetchLatestNotifications = async () => {
+      const { data, error } = await supabase
+        .from("incidents")
+        .select("id, incident_id, location, time, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error("Failed to fetch notifications:", error);
+        return;
+      }
+
+      setNotifications((data as IncidentNotification[]) || []);
+    };
+
+    fetchLatestNotifications();
+
+    const channel = supabase
+      .channel("incident-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "incidents",
+        },
+        (payload) => {
+          const newIncident = payload.new as IncidentNotification;
+
+          setNotifications((prev) => [newIncident, ...prev].slice(0, 5));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formatNotificationTime = (notification: IncidentNotification) => {
+    if (notification.time) {
+      return notification.time.slice(0, 5);
+    }
+
+    if (notification.created_at) {
+      return new Date(notification.created_at).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    }
+
+    return "--:--";
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Stats Row */}
@@ -62,7 +132,7 @@ export default function DashboardPage() {
               Dammam, AlKhobar, AlDhahran Region
             </p>
           </CardHeader>
-          <CardContent className="flex-1 relative p-0 overflow-hidden bg-[#f0f0f0] min-h-[350px]">
+          <CardContent className="flex-1 relative p-0 overflow-hidden bg-[#f0f0f0] min-h-87.5">
             <IncidentMap />
           </CardContent>
         </Card>
@@ -130,8 +200,28 @@ export default function DashboardPage() {
             Real-time Notifications
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-20 flex items-center justify-center text-slate-400 text-sm">
-          No active alerts at the moment
+        <CardContent className="text-sm">
+          {notifications.length === 0 ? (
+            <div className="h-20 flex items-center justify-center text-slate-400">
+              No active alerts at the moment
+            </div>
+          ) : (
+            <div className="space-y-2 py-1">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
+                >
+                  <span className="text-slate-700 truncate pr-4">
+                    {notification.location || "Unknown location"}
+                  </span>
+                  <span className="text-slate-500 shrink-0">
+                    {formatNotificationTime(notification)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
