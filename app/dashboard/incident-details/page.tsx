@@ -26,7 +26,7 @@ interface Incident {
   date: string;
   time: string;
   location: string;
-  severity: "High" | "Moderate" | "Low";
+  severity: "Severe" | "Moderate" | "Minor";
   confidence: number;
   status: "Active" | "Resolved" | "Pending";
   video_url: string | null;
@@ -71,10 +71,10 @@ export default function IncidentDetailsPage() {
   // Calculate severity data from fetched incidents
   const severityData = [
     {
-      name: "High",
+      name: "Severe",
       value:
         incidents.length > 0
-          ? incidents.filter((i) => i.severity === "High").length
+          ? incidents.filter((i) => i.severity === "Severe").length
           : 0,
       color: "#ef4444",
     },
@@ -87,10 +87,10 @@ export default function IncidentDetailsPage() {
       color: "#fb923c",
     },
     {
-      name: "Low",
+      name: "Minor",
       value:
         incidents.length > 0
-          ? incidents.filter((i) => i.severity === "Low").length
+          ? incidents.filter((i) => i.severity === "Minor").length
           : 0,
       color: "#2dd4bf",
     },
@@ -105,10 +105,10 @@ export default function IncidentDetailsPage() {
       );
       return {
         name: region,
-        High: regionIncidents.filter((i) => i.severity === "High").length,
+        Severe: regionIncidents.filter((i) => i.severity === "Severe").length,
         Moderate: regionIncidents.filter((i) => i.severity === "Moderate")
           .length,
-        Low: regionIncidents.filter((i) => i.severity === "Low").length,
+        Minor: regionIncidents.filter((i) => i.severity === "Minor").length,
       };
     });
   })();
@@ -178,7 +178,10 @@ export default function IncidentDetailsPage() {
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
-                  formatter={(value: number) => [`${value}%`, "Percentage"]}
+                  formatter={(value: number | undefined) => [
+                    `${value ?? 0}%`,
+                    "Percentage",
+                  ]}
                 />
                 <Legend
                   verticalAlign="bottom"
@@ -229,9 +232,9 @@ export default function IncidentDetailsPage() {
                     <span className="text-xs text-slate-500">{value}</span>
                   )}
                 />
-                <Bar dataKey="High" fill="#f87171" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Severe" fill="#f87171" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Moderate" fill="#fb923c" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Low" fill="#2dd4bf" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Minor" fill="#2dd4bf" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -296,7 +299,7 @@ export default function IncidentDetailsPage() {
                     </td>
                     <td className="px-3 py-3">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${incident.severity === "High" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${incident.severity === "Severe" ? "bg-red-100 text-red-600" : incident.severity === "Moderate" ? "bg-orange-100 text-orange-600" : "bg-teal-100 text-teal-600"}`}
                       >
                         {incident.severity}
                       </span>
@@ -345,6 +348,14 @@ export default function IncidentDetailsPage() {
         <IncidentReportModal
           incident={selectedIncident}
           onClose={() => setSelectedIncident(null)}
+          onStatusChange={(updatedIncident) => {
+            setIncidents((prev) =>
+              prev.map((i) =>
+                i.id === updatedIncident.id ? updatedIncident : i,
+              ),
+            );
+            setSelectedIncident(updatedIncident);
+          }}
         />
       )}
     </div>
@@ -352,14 +363,43 @@ export default function IncidentDetailsPage() {
 }
 
 function IncidentReportModal({
-  incident,
+  incident: initialIncident,
   onClose,
+  onStatusChange,
 }: {
   incident: Incident;
   onClose: () => void;
+  onStatusChange?: (incident: Incident) => void;
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [incident, setIncident] = useState(initialIncident);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleStatusChange = async (
+    newStatus: "Active" | "Resolved" | "Pending",
+  ) => {
+    try {
+      setIsUpdating(true);
+      const { data, error } = await supabase
+        .from("incidents")
+        .update({ status: newStatus })
+        .eq("id", incident.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const updatedIncident = { ...incident, ...data } as Incident;
+      setIncident(updatedIncident);
+      onStatusChange?.(updatedIncident);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -454,18 +494,46 @@ function IncidentReportModal({
           </div>
 
           {/* Top Stats Grid */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="text-slate-500 text-xs uppercase font-semibold">
                 Severity Level
               </label>
               <div className="mt-1">
                 <span
-                  className={`px-3 py-1 rounded text-sm font-medium text-white ${incident.severity === "High" ? "bg-red-500" : incident.severity === "Moderate" ? "bg-orange-500" : "bg-teal-500"}`}
+                  className={`px-3 py-1 rounded text-sm font-medium text-white ${incident.severity === "Severe" ? "bg-red-500" : incident.severity === "Moderate" ? "bg-orange-500" : "bg-teal-500"}`}
                 >
                   {incident.severity}
                 </span>
               </div>
+            </div>
+            <div>
+              <label className="text-slate-500 text-xs uppercase font-semibold">
+                Status
+              </label>
+              <select
+                value={incident.status}
+                onChange={(e) =>
+                  handleStatusChange(
+                    e.target.value as "Active" | "Resolved" | "Pending",
+                  )
+                }
+                disabled={isUpdating}
+                className={`mt-1 w-full px-3 py-2 rounded border text-sm font-medium transition-colors ${
+                  incident.status === "Active"
+                    ? "border-red-300 bg-red-50 text-red-700"
+                    : incident.status === "Resolved"
+                      ? "border-green-300 bg-green-50 text-green-700"
+                      : "border-yellow-300 bg-yellow-50 text-yellow-700"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="Pending">Pending</option>
+                <option value="Active">Active</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+              {isUpdating && (
+                <p className="text-xs text-slate-500 mt-1">Updating...</p>
+              )}
             </div>
             <div>
               <label className="text-slate-500 text-xs uppercase font-semibold">
