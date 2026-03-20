@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
 export default function SignupPage() {
-  return <div>Signup page coming soon</div>;
+  return <div>Signup page</div>;
 }
 
 // import { AuthLayout } from "@/components/auth-layout";
