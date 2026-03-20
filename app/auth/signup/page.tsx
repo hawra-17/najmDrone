@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-
-// Sign up page is disabled for security reasons
-// Only IT administrators can create accounts for users
-
-// Original code commented out below:
-// "use client";
+export default function SignupPage() {
+  return <div>Signup page coming soon</div>;
+}
 
 // import { AuthLayout } from "@/components/auth-layout";
 // import Image from "next/image";
