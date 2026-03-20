@@ -67,6 +67,41 @@ export default function IncidentDetailsPage() {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(
     null,
   );
+  const [updatingIncidentId, setUpdatingIncidentId] = useState<string | null>(
+    null,
+  );
+
+  const handleStatusChange = async (
+    incidentId: string,
+    newStatus: "Active" | "Resolved" | "Pending",
+  ) => {
+    try {
+      setUpdatingIncidentId(incidentId);
+      const { error } = await supabase
+        .from("incidents")
+        .update({ status: newStatus })
+        .eq("id", incidentId);
+
+      if (error) throw error;
+
+      setIncidents((prev) =>
+        prev.map((incident) =>
+          incident.id === incidentId
+            ? { ...incident, status: newStatus }
+            : incident,
+        ),
+      );
+
+      if (selectedIncident?.id === incidentId) {
+        setSelectedIncident({ ...selectedIncident, status: newStatus });
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setUpdatingIncidentId(null);
+    }
+  };
 
   // Calculate severity data from fetched incidents
   const severityData = [
@@ -308,11 +343,27 @@ export default function IncidentDetailsPage() {
                       {incident.confidence}%
                     </td>
                     <td className="px-3 py-3">
-                      <span
-                        className={`text-xs ${incident.status === "Active" ? "text-slate-800 font-medium" : "text-slate-500"}`}
+                      <select
+                        value={incident.status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            incident.id,
+                            e.target.value as "Active" | "Resolved" | "Pending",
+                          )
+                        }
+                        disabled={updatingIncidentId === incident.id}
+                        className={`px-2 py-1 rounded text-xs font-medium border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                          incident.status === "Active"
+                            ? "border-red-300 bg-red-50 text-red-700"
+                            : incident.status === "Resolved"
+                              ? "border-green-300 bg-green-50 text-green-700"
+                              : "border-yellow-300 bg-yellow-50 text-yellow-700"
+                        }`}
                       >
-                        {incident.status}
-                      </span>
+                        <option value="Pending">Pending</option>
+                        <option value="Active">Active</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
                     </td>
                     <td className="px-3 py-3">
                       <Button
