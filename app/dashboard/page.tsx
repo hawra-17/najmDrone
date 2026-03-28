@@ -44,6 +44,20 @@ export default function DashboardPage() {
   );
   const [selectedAlert, setSelectedAlert] =
     useState<IncidentNotification | null>(null);
+  const [totalIncidents, setTotalIncidents] = useState<number | null>(null);
+  const [activeIncidents, setActiveIncidents] = useState<number | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string>("—");
+
+  const formatTimeAgo = (isoString: string): string => {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? "" : "s"} ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  };
 
   // Get today's date range
   const getTodayDateRange = () => {
@@ -112,13 +126,37 @@ export default function DashboardPage() {
       setTodayIncidents((mapData as IncidentNotification[]) || []);
     };
 
+    const fetchKPIs = async () => {
+      const [totalRes, activeRes, latestRes] = await Promise.all([
+        supabase.from("incidents").select("*", { count: "exact", head: true }),
+        supabase
+          .from("incidents")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "Active"),
+        supabase
+          .from("incidents")
+          .select("created_at")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (!totalRes.error) setTotalIncidents(totalRes.count ?? 0);
+      if (!activeRes.error) setActiveIncidents(activeRes.count ?? 0);
+      if (!latestRes.error && latestRes.data) {
+        setLastUpdate(formatTimeAgo(latestRes.data.created_at));
+      }
+    };
+
     fetchLatestNotifications();
+    fetchKPIs();
 
     // Set up midnight reset timer
     const timeUntilMidnight = getTimeUntilMidnight();
     const midnightTimer = setTimeout(() => {
       setTodayIncidents([]); // Clear today's incidents at midnight
       fetchLatestNotifications(); // Refetch for new day
+      fetchKPIs();
     }, timeUntilMidnight);
 
     const channel = supabase
@@ -135,6 +173,13 @@ export default function DashboardPage() {
 
           // Add to notifications list
           setNotifications((prev) => [newIncident, ...prev].slice(0, 5));
+
+          // Update KPI counts and last update time
+          setTotalIncidents((prev) => (prev ?? 0) + 1);
+          if (newIncident.status === "Active") {
+            setActiveIncidents((prev) => (prev ?? 0) + 1);
+          }
+          setLastUpdate(formatTimeAgo(newIncident.created_at));
 
           // Add to today's incidents if it's from today
           const { startOfDay, endOfDay } = getTodayDateRange();
@@ -224,11 +269,15 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total Incidents (Eastern Province)"
-          value="140"
+          value={totalIncidents !== null ? String(totalIncidents) : "—"}
           icon={AlertCircle}
         />
-        <StatCard title="Active Incidents" value="8" icon={Activity} />
-        <StatCard title="Last Update" value="2 mins ago" icon={Clock} />
+        <StatCard
+          title="Active Incidents"
+          value={activeIncidents !== null ? String(activeIncidents) : "—"}
+          icon={Activity}
+        />
+        <StatCard title="Last Update" value={lastUpdate} icon={Clock} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
