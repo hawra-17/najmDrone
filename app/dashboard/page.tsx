@@ -91,14 +91,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchLatestNotifications = async () => {
-      // Fetch latest 5 for the notification list
+      // Fetch Pending (any age) + Active (last 24h only), never Resolved
+      const twentyFourHoursAgo = new Date(
+        Date.now() - 24 * 60 * 60 * 1000,
+      ).toISOString();
+
       const { data: listData, error: listError } = await supabase
         .from("incidents")
         .select(
           "id, incident_id, location, latitude, longitude, time, created_at, status",
         )
-        .order("created_at", { ascending: false })
-        .limit(5);
+        .or(
+          `status.eq.Pending,and(status.eq.Active,created_at.gte.${twentyFourHoursAgo})`,
+        )
+        .order("created_at", { ascending: false });
 
       if (listError) {
         console.error("Failed to fetch notifications:", listError);
@@ -171,8 +177,15 @@ export default function DashboardPage() {
         (payload) => {
           const newIncident = payload.new as IncidentNotification;
 
-          // Add to notifications list
-          setNotifications((prev) => [newIncident, ...prev].slice(0, 5));
+          // Only add to notifications if Pending, or Active within 24h
+          if (
+            newIncident.status === "Pending" ||
+            (newIncident.status === "Active" &&
+              Date.now() - new Date(newIncident.created_at).getTime() <
+                24 * 60 * 60 * 1000)
+          ) {
+            setNotifications((prev) => [newIncident, ...prev]);
+          }
 
           // Update KPI counts and last update time
           setTotalIncidents((prev) => (prev ?? 0) + 1);
@@ -194,9 +207,23 @@ export default function DashboardPage() {
       )
       .subscribe();
 
+    // Every 60s, remove Active notifications older than 24h
+    const pruneInterval = setInterval(() => {
+      setNotifications((prev) =>
+        prev.filter(
+          (n) =>
+            n.status === "Pending" ||
+            (n.status === "Active" &&
+              Date.now() - new Date(n.created_at).getTime() <
+                24 * 60 * 60 * 1000),
+        ),
+      );
+    }, 60_000);
+
     return () => {
       supabase.removeChannel(channel);
       clearTimeout(midnightTimer);
+      clearInterval(pruneInterval);
     };
   }, []);
 
