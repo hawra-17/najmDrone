@@ -26,6 +26,8 @@ interface Incident {
   date: string;
   time: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   severity: "Severe" | "Moderate" | "Minor";
   confidence: number;
   status: "Active" | "Resolved" | "Pending";
@@ -34,15 +36,60 @@ interface Incident {
   updated_at: string;
 }
 
-// Helper function to extract region from location
-function extractRegion(location: string): string {
+// Region centers for geo-distance classification
+const REGION_CENTERS = [
+  { name: "Dammam", lat: 26.4207, lng: 50.0888 },
+  { name: "AlKhobar", lat: 26.2794, lng: 50.2083 },
+  { name: "AlDhahran", lat: 26.2361, lng: 50.0393 },
+  { name: "Qatif", lat: 26.5196, lng: 50.0115 },
+] as const;
+
+// Haversine distance in km between two coordinates
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Classify incident to nearest region: try name match first, then coordinates
+function extractRegion(
+  location: string,
+  lat: number | null,
+  lng: number | null,
+): string {
+  // 1. Try direct name match
   const locationLower = location.toLowerCase();
   if (locationLower.includes("dammam")) return "Dammam";
   if (locationLower.includes("khobar") || locationLower.includes("alkhobar"))
     return "AlKhobar";
   if (locationLower.includes("dhahran") || locationLower.includes("aldhahran"))
     return "AlDhahran";
-  return "Other";
+  if (locationLower.includes("qatif")) return "Qatif";
+
+  // 2. Fall back to nearest city by coordinates
+  if (lat != null && lng != null) {
+    let nearest = REGION_CENTERS[0].name;
+    let minDist = Infinity;
+    for (const center of REGION_CENTERS) {
+      const d = haversineKm(lat, lng, center.lat, center.lng);
+      if (d < minDist) {
+        minDist = d;
+        nearest = center.name;
+      }
+    }
+    return nearest;
+  }
+
+  return "Dammam"; // default if no coords available
 }
 
 // Helper function to format date
@@ -133,10 +180,10 @@ export default function IncidentDetailsPage() {
 
   // Calculate regional data from fetched incidents
   const regionalData = (() => {
-    const regions = ["Dammam", "AlKhobar", "AlDhahran"];
+    const regions = ["Dammam", "AlKhobar", "AlDhahran", "Qatif"];
     return regions.map((region) => {
       const regionIncidents = incidents.filter(
-        (i) => extractRegion(i.location) === region,
+        (i) => extractRegion(i.location, i.latitude, i.longitude) === region,
       );
       return {
         name: region,
