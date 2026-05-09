@@ -32,6 +32,8 @@ interface Incident {
   confidence: number;
   status: "Active" | "Resolved" | "Pending";
   video_url: string | null;
+  plate_1_text: string | null;
+  plate_2_text: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -473,6 +475,40 @@ function IncidentReportModal({
   const [isExporting, setIsExporting] = useState(false);
   const [incident, setIncident] = useState(initialIncident);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [plate1, setPlate1] = useState<string | null>(
+    initialIncident.plate_1_text ?? null,
+  );
+  const [plate2, setPlate2] = useState<string | null>(
+    initialIncident.plate_2_text ?? null,
+  );
+  const [platesLoading, setPlatesLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchPlates() {
+      try {
+        setPlatesLoading(true);
+        const { data, error } = await supabase
+          .from("incidents")
+          .select("plate_1_text, plate_2_text")
+          .eq("incident_id", initialIncident.incident_id)
+          .single();
+        if (error) throw error;
+        if (!cancelled && data) {
+          setPlate1(data.plate_1_text ?? null);
+          setPlate2(data.plate_2_text ?? null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch license plates:", err);
+      } finally {
+        if (!cancelled) setPlatesLoading(false);
+      }
+    }
+    fetchPlates();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialIncident.incident_id]);
 
   const handleStatusChange = async (
     newStatus: "Active" | "Resolved" | "Pending",
@@ -668,11 +704,15 @@ function IncidentReportModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="border border-slate-200 rounded-lg p-3">
                 <p className="text-slate-500 text-xs">Car A</p>
-                <p className="text-slate-800 font-medium">ABC-1234</p>
+                <p className="text-slate-800 font-medium">
+                  {platesLoading ? "Loading..." : (plate1 ?? "—")}
+                </p>
               </div>
               <div className="border border-slate-200 rounded-lg p-3">
                 <p className="text-slate-500 text-xs">Car B</p>
-                <p className="text-slate-800 font-medium">XYZ-5678</p>
+                <p className="text-slate-800 font-medium">
+                  {platesLoading ? "Loading..." : (plate2 ?? "—")}
+                </p>
               </div>
             </div>
           </div>
@@ -753,7 +793,7 @@ function IncidentReportModal({
                 />
 
                 <div className="absolute bottom-0 w-full bg-white/90 py-1 text-center text-xs font-medium text-slate-700">
-                  Car A: ABC-1234
+                  Car A: {platesLoading ? "Loading..." : (plate1 ?? "—")}
                 </div>
               </div>
               <div className="aspect-[3/1] bg-slate-800 rounded-lg overflow-hidden relative group flex items-center justify-center">
@@ -765,7 +805,7 @@ function IncidentReportModal({
                   className="object-cover w-full h-full opacity-80"
                 />
                 <div className="absolute bottom-0 w-full bg-white/90 py-1 text-center text-xs font-medium text-slate-700">
-                  Car B: XYZ-5678
+                  Car B: {platesLoading ? "Loading..." : (plate2 ?? "—")}
                 </div>
               </div>
             </div>
