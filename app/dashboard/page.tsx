@@ -44,6 +44,10 @@ export default function DashboardPage() {
   );
   const [selectedAlert, setSelectedAlert] =
     useState<IncidentNotification | null>(null);
+  const [bannerAlert, setBannerAlert] = useState<IncidentNotification | null>(
+    null,
+  );
+  const [, setTimeTick] = useState(0);
   const [totalIncidents, setTotalIncidents] = useState<number | null>(null);
   const [activeIncidents, setActiveIncidents] = useState<number | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("—");
@@ -111,7 +115,12 @@ export default function DashboardPage() {
         return;
       }
 
-      setNotifications((listData as IncidentNotification[]) || []);
+      const list = (listData as IncidentNotification[]) || [];
+      setNotifications(list);
+
+      // Show banner for the latest Pending (un-activated) incident on load
+      const latestPending = list.find((n) => n.status === "Pending");
+      if (latestPending) setBannerAlert(latestPending);
 
       // Fetch all today's incidents for the map
       const { startOfDay, endOfDay } = getTodayDateRange();
@@ -187,6 +196,11 @@ export default function DashboardPage() {
             setNotifications((prev) => [newIncident, ...prev]);
           }
 
+          // Show top banner for new Pending alerts (replaces any existing banner)
+          if (newIncident.status === "Pending") {
+            setBannerAlert(newIncident);
+          }
+
           // Update KPI counts and last update time
           setTotalIncidents((prev) => (prev ?? 0) + 1);
           if (newIncident.status === "Active") {
@@ -220,10 +234,16 @@ export default function DashboardPage() {
       );
     }, 60_000);
 
+    // Force re-render every 30s so banner "minutes ago" stays fresh
+    const tickInterval = setInterval(() => {
+      setTimeTick((t) => t + 1);
+    }, 30_000);
+
     return () => {
       supabase.removeChannel(channel);
       clearTimeout(midnightTimer);
       clearInterval(pruneInterval);
+      clearInterval(tickInterval);
     };
   }, []);
 
@@ -272,6 +292,8 @@ export default function DashboardPage() {
         ? { ...prev, status: "Active" }
         : prev,
     );
+    // Dismiss the top banner if the activated alert is the one being shown
+    setBannerAlert((prev) => (prev && prev.id === notification.id ? null : prev));
   };
 
   const formatNotificationTime = (notification: IncidentNotification) => {
@@ -290,8 +312,62 @@ export default function DashboardPage() {
     return "--:--";
   };
 
+  const formatBannerTimeAgo = (isoString: string): string => {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60)
+      return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Top Drone Alert Banner */}
+      {bannerAlert && (
+        <button
+          type="button"
+          onClick={() => handleNotificationClick(bannerAlert)}
+          className="w-full flex items-center justify-between rounded-xl px-5 py-3 text-left text-white shadow-md cursor-pointer animate-in slide-in-from-top-2 duration-300"
+          style={{
+            background:
+              "linear-gradient(90deg, #1f72ea 0%, #2aa8c9 60%, #4cd1c2 100%)",
+          }}
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+              <Image
+                src="/drone_alert.png"
+                alt="Drone"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-base leading-tight">
+                Drone Alert - Active Surveillance
+              </p>
+              <div className="flex items-center gap-4 mt-1 text-xs opacity-95">
+                <span className="flex items-center gap-1 truncate">
+                  <MapPin size={14} />
+                  <span className="truncate">
+                    {bannerAlert.location || "Unknown location"} - High Severity
+                    Incident
+                  </span>
+                </span>
+                <span className="flex items-center gap-1 shrink-0">
+                  <Clock size={14} />
+                  {formatBannerTimeAgo(bannerAlert.created_at)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <span className="w-3 h-3 rounded-full bg-red-500 shrink-0 animate-pulse" />
+        </button>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
