@@ -509,7 +509,7 @@ export default function DashboardPage() {
                       </span>
                       {notification.status !== "Active" && (
                         <span className="text-xs text-blue-600 font-semibold">
-                          Click to activate
+                          Launch drone to location
                         </span>
                       )}
                     </div>

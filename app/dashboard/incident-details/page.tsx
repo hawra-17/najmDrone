@@ -687,11 +687,11 @@ function IncidentReportModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="border border-slate-200 rounded-lg p-3">
                 <p className="text-slate-500 text-xs">Driver A</p>
-                <p className="text-slate-800 font-medium">Ahmed Al-Rashid</p>
+                <p className="text-slate-800 font-medium">Driver A</p>
               </div>
               <div className="border border-slate-200 rounded-lg p-3">
                 <p className="text-slate-500 text-xs">Driver B</p>
-                <p className="text-slate-800 font-medium">Mohammed Al-Otaibi</p>
+                <p className="text-slate-800 font-medium">Driver B</p>
               </div>
             </div>
           </div>
